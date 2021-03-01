@@ -15,9 +15,9 @@ use std::str::FromStr;
 pub(crate) fn validate_name(idx: usize, name: &str) -> Result<(), AvrowErr> {
     println!("idx: {} name: {}", idx, name);
     if name.contains('.')
-        || (name.starts_with(|a: char| a.is_ascii_digit()) && idx == 0)
+        || (name.starts_with(|a: char| a.is_numeric()) && idx == 0)
         || name.is_empty()
-        || !name.chars().any(|a| a.is_ascii_alphanumeric() || a == '_')
+        || !name.chars().any(|a| a.is_alphanumeric() || a == '_')
     {
         Err(AvrowErr::InvalidName)
     } else {
