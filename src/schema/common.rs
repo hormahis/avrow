@@ -13,6 +13,7 @@ use std::str::FromStr;
 ///////////////////////////////////////////////////////////////////////////////
 
 pub(crate) fn validate_name(idx: usize, name: &str) -> Result<(), AvrowErr> {
+    println!("idx: {} name: {}", idx, name);
     if name.contains('.')
         || (name.starts_with(|a: char| a.is_ascii_digit()) && idx == 0)
         || name.is_empty()
