@@ -16,6 +16,18 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::io::Write;
 
+
+/// Write value to stream
+pub fn write_value(
+    val: Value,
+    schema: &Schema,
+    stream: &mut Vec<u8>
+) -> AvrowResult<()> {
+    schema.validate(&val)?;
+    val.encode(stream, &schema.variant(), &schema.cxt)?;
+    Ok(())
+}
+
 fn sync_marker() -> [u8; SYNC_MARKER_SIZE] {
     let mut vec = [0u8; SYNC_MARKER_SIZE];
     thread_rng().fill_bytes(&mut vec[..]);
@@ -165,19 +177,12 @@ impl<'a, W: Write> Writer<'a, W> {
     /// the underlying buffer with all data written.
     pub fn write<T: Into<Value>>(&mut self, value: T) -> AvrowResult<()> {
         let val: Value = value.into();
-        self.schema.validate(&val)?;
-
-        val.encode(
-            &mut self.block_stream,
-            &self.schema.variant(),
-            &self.schema.cxt,
-        )?;
+        write_value(val, self.schema, &mut self.block_stream)?;
         self.block_count += 1;
 
         if self.block_stream.len() >= self.flush_interval {
             self.flush()?;
         }
-
         Ok(())
     }
 

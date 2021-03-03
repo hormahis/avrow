@@ -222,7 +222,7 @@ impl Variant {
                 return if let Some(v) = item.first() {
                     items.validate(v, cxt)
                 } else {
-                    Err(AvrowErr::EmptyArray)
+                    Ok(())
                 }
             }
             (v, Variant::Named(name)) => {

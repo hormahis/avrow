@@ -24,6 +24,14 @@ use std::str;
 use std::str::FromStr;
 use value::{FieldValue, Record, Value};
 
+/// Decode bytes message
+pub fn decode_datum<R: Read>(
+    schema: &Schema,
+    source: &mut R,
+) -> Result<Value, AvrowErr> {
+    decode(&schema.variant, source, &schema.cxt)
+}
+
 /// Reader is the primary interface for reading data from an avro datafile.
 pub struct Reader<'a, R> {
     source: R,
@@ -531,16 +539,13 @@ pub(crate) fn decode<R: Read>(
         Variant::Array { items } => {
             let block_count: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
 
-            if block_count == 0 {
-                // FIXME do we send an empty array?
-                return Ok(Value::Array(Vec::new()));
-            }
-
             let mut it = Vec::with_capacity(block_count as usize);
             for _ in 0..block_count {
                 let decoded = decode(&**items, reader, w_cxt)?;
                 it.push(decoded);
             }
+
+            let _: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
 
             Value::Array(it)
         }

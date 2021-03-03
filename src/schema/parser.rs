@@ -3,7 +3,7 @@ use super::Variant;
 use crate::error::io_err;
 use crate::error::AvrowErr;
 use crate::error::AvrowResult;
-use crate::schema::common::validate_name;
+use crate::schema::{Schema, common::validate_name};
 use crate::value::FieldValue;
 use crate::value::Value;
 use indexmap::IndexMap;
@@ -139,7 +139,7 @@ impl Registry {
                     }
 
                     let default = if let Some(v) = o.get("default") {
-                        Some(parse_default(v, &ty)?)
+                        Some(parse_default(v, &ty, None)?)
                     } else {
                         None
                     };
@@ -337,11 +337,25 @@ fn parse_aliases(aliases: Option<&JsonValue>) -> Option<Vec<String>> {
 pub(crate) fn parse_default(
     default_value: &JsonValue,
     schema_variant: &Variant,
+    schema: Option<&Schema>
 ) -> Result<Value, AvrowErr> {
     match (default_value, schema_variant) {
         (d, Variant::Union { variants }) => {
-            let first_variant = variants.first().ok_or(AvrowErr::FailedDefaultUnion)?;
-            parse_default(d, first_variant)
+            for variant in variants {
+                if let Ok(v) = parse_default(d, variant, schema) {
+                    return Ok(v);
+                }
+            };
+            Err(AvrowErr::FailedDefaultUnion)
+        }
+        (d, Variant::Named(typename)) => match schema {
+            Some(s) => match s.cxt.get(typename) {
+                Some(ty) => parse_default(d, ty, schema),
+                None => Err(AvrowErr::ParseError(format!(
+                    "Unknown type '{}'", typename)))
+            }
+            None => Err(AvrowErr::ParseError(format!(
+                "No schema for type '{}'", typename)))
         }
         (JsonValue::Null, Variant::Null) => Ok(Value::Null),
         (JsonValue::Bool(v), Variant::Boolean) => Ok(Value::Boolean(*v)),
@@ -355,8 +369,11 @@ pub(crate) fn parse_default(
             let mut values = IndexMap::with_capacity(v.len());
 
             for (k, v) in v {
-                let parsed_value =
-                    parse_default(v, &fields.get(k).ok_or(AvrowErr::DefaultValueParse)?.ty)?;
+                let parsed_value = parse_default(
+                    v,
+                    &fields.get(k).ok_or(AvrowErr::DefaultValueParse)?.ty,
+                    schema
+                )?;
                 values.insert(k.to_string(), FieldValue::new(parsed_value));
             }
 
@@ -375,7 +392,7 @@ pub(crate) fn parse_default(
         (JsonValue::Array(arr), Variant::Array { items }) => {
             let mut default_arr_items: Vec<Value> = Vec::with_capacity(arr.len());
             for v in arr {
-                let parsed_default = parse_default(v, items);
+                let parsed_default = parse_default(v, items, schema);
                 default_arr_items.push(parsed_default?);
             }
 
@@ -389,7 +406,7 @@ pub(crate) fn parse_default(
         ) => {
             let mut values = std::collections::HashMap::with_capacity(map.len());
             for (k, v) in map {
-                let parsed_value = parse_default(v, values_schema)?;
+                let parsed_value = parse_default(v, values_schema, schema)?;
                 values.insert(k.to_string(), parsed_value);
             }
 

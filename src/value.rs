@@ -14,12 +14,16 @@ use integer_encoding::VarIntWriter;
 use schema::Order;
 use schema::Variant;
 use serde::Serialize;
+use serde_json::json;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Display;
 use std::io::Write;
+use std::str::from_utf8;
 
 // Convenient type alias for map initialzation.
 pub type Map = HashMap<String, Value>;
+type JsonMap = serde_json::Map<String, serde_json::Value>;
+type JsonValue = serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) struct FieldValue {
@@ -92,6 +96,15 @@ impl Record {
         Ok(record)
     }
 
+    /// Creater JSON object (serde_json::Value) from record.
+    pub fn to_json(&self) -> Result<JsonMap, AvrowErr> {
+        let mut serde_map = JsonMap::new();
+        for (key, value) in self.fields.iter() {
+            serde_map.insert(key.clone(), avro_to_json(&value.value)?);
+        };
+        Ok(serde_map)
+    }
+
     /// Creates a record from a JSON object (serde_json::Value). A confirming record schema must be provided.
     pub fn from_json(
         json: serde_json::Map<String, serde_json::Value>,
@@ -108,14 +121,14 @@ impl Record {
                 if let Some(default_value) = json.get(k) {
                     if let Variant::Union { variants } = &v.ty {
                         for var in variants {
-                            if let Ok(v) = parse_default(&default_value, &var) {
+                            if let Ok(v) = parse_default(&default_value, &var, Some(schema)) {
                                 values.insert(k.to_string(), FieldValue::new(v));
                                 continue 'fields;
                             }
                         }
                         return Err(AvrowErr::FailedDefaultUnion);
                     } else {
-                        let parsed_value = parse_default(&default_value, &v.ty)?;
+                        let parsed_value = parse_default(&default_value, &v.ty, Some(schema))?;
                         values.insert(k.to_string(), FieldValue::new(parsed_value));
                     }
                 } else if let Some(v) = &v.default {
@@ -135,36 +148,38 @@ impl Record {
     }
 }
 
-// TODO: Avro sort order
-// impl PartialOrd for Value {
-//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-//         match (self, other) {
-//             (Value::Null, Value::Null) => Some(Ordering::Equal),
-//             (Value::Boolean(self_v), Value::Boolean(other_v)) => {
-//                 if self_v == other_v {
-//                     return Some(Ordering::Equal);
-//                 }
-//                 if *self_v == false && *other_v {
-//                     Some(Ordering::Less)
-//                 } else {
-//                     Some(Ordering::Greater)
-//                 }
-//             }
-//             (Value::Int(self_v), Value::Int(other_v)) => Some(self_v.cmp(other_v)),
-//             (Value::Long(self_v), Value::Long(other_v)) => Some(self_v.cmp(other_v)),
-//             (Value::Float(self_v), Value::Float(other_v)) => self_v.partial_cmp(other_v),
-//             (Value::Double(self_v), Value::Double(other_v)) => self_v.partial_cmp(other_v),
-//             (Value::Bytes(self_v), Value::Bytes(other_v)) => self_v.partial_cmp(other_v),
-//             (Value::Byte(self_v), Value::Byte(other_v)) => self_v.partial_cmp(other_v),
-//             (Value::Fixed(self_v), Value::Fixed(other_v)) => self_v.partial_cmp(other_v),
-//             (Value::Str(self_v), Value::Str(other_v)) => self_v.partial_cmp(other_v),
-//             (Value::Array(self_v), Value::Array(other_v)) => self_v.partial_cmp(other_v),
-//             (Value::Enum(self_v), Value::Enum(other_v)) => self_v.partial_cmp(other_v),
-//             (Value::Record(_self_v), Value::Record(_other_v)) => todo!(),
-//             _ => todo!(),
-//         }
-//     }
-// }
+fn avro_to_json(value: &Value) -> Result<JsonValue, AvrowErr> {
+    Ok(match value {
+        Value::Null => json!(null),
+        Value::Boolean(v) => json!(v),
+        Value::Int(v) => json!(v),
+        Value::Long(v) => json!(v),
+        Value::Float(v) => json!(v),
+        Value::Double(v) => json!(v),
+        Value::Str(v) => json!(v),
+        Value::Record(r) => JsonValue::Object(r.to_json()?),
+        Value::Fixed(v) => json!(match from_utf8(v.as_slice()) {
+            Ok(s) => s,
+            Err(err) => return Err(AvrowErr::Message(format!("{:?}", err)))
+        }),
+        Value::Map(m) => {
+            let mut map = JsonMap::new();
+            for (k, v) in m.iter() {
+                map.insert(k.clone(), avro_to_json(v)?);
+            };
+            JsonValue::Object(map)
+        },
+        Value::Array(a) => {
+            let mut array = vec![];
+            for item in a.iter() {
+                array.push(avro_to_json(item)?);
+            };
+            JsonValue::Array(array)
+        }
+        _ => return Err(AvrowErr::Message(format!(
+                "Unimplemented value conversion: {:?}", value)))
+    })
+}
 
 /// Represents an Avro value
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -647,6 +662,37 @@ impl Value {
         }
     }
 }
+
+// TODO: Avro sort order
+// impl PartialOrd for Value {
+//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+//         match (self, other) {
+//             (Value::Null, Value::Null) => Some(Ordering::Equal),
+//             (Value::Boolean(self_v), Value::Boolean(other_v)) => {
+//                 if self_v == other_v {
+//                     return Some(Ordering::Equal);
+//                 }
+//                 if *self_v == false && *other_v {
+//                     Some(Ordering::Less)
+//                 } else {
+//                     Some(Ordering::Greater)
+//                 }
+//             }
+//             (Value::Int(self_v), Value::Int(other_v)) => Some(self_v.cmp(other_v)),
+//             (Value::Long(self_v), Value::Long(other_v)) => Some(self_v.cmp(other_v)),
+//             (Value::Float(self_v), Value::Float(other_v)) => self_v.partial_cmp(other_v),
+//             (Value::Double(self_v), Value::Double(other_v)) => self_v.partial_cmp(other_v),
+//             (Value::Bytes(self_v), Value::Bytes(other_v)) => self_v.partial_cmp(other_v),
+//             (Value::Byte(self_v), Value::Byte(other_v)) => self_v.partial_cmp(other_v),
+//             (Value::Fixed(self_v), Value::Fixed(other_v)) => self_v.partial_cmp(other_v),
+//             (Value::Str(self_v), Value::Str(other_v)) => self_v.partial_cmp(other_v),
+//             (Value::Array(self_v), Value::Array(other_v)) => self_v.partial_cmp(other_v),
+//             (Value::Enum(self_v), Value::Enum(other_v)) => self_v.partial_cmp(other_v),
+//             (Value::Record(_self_v), Value::Record(_other_v)) => todo!(),
+//             _ => todo!(),
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

@@ -28,6 +28,9 @@ pub type AvrowResult<T> = Result<T, AvrowErr>;
 /// Errors returned from avrow
 #[derive(thiserror::Error, Debug)]
 pub enum AvrowErr {
+    #[error("Parse failed")]
+    ParseError(String),
+
     // Encode errors
     #[error("Write failed")]
     EncodeFailed(#[source] std::io::Error),
