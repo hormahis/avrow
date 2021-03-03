@@ -58,7 +58,7 @@ fn main() -> Result<(), Error> {
         "active": true,
         "mentees":{"id":1, "username":"alice"} }"##,
     )?;
-    let rec = Record::from_json(json_data, &schema)?;
+    let rec = Record::from_json(&json_data, &schema)?;
     let mut writer = crate::Writer::new(&schema, vec![])?;
     writer.write(rec)?;
 

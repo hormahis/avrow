@@ -107,7 +107,7 @@ impl Record {
 
     /// Creates a record from a JSON object (serde_json::Value). A confirming record schema must be provided.
     pub fn from_json(
-        json: serde_json::Map<String, serde_json::Value>,
+        json: &serde_json::Map<String, serde_json::Value>,
         schema: &Schema,
     ) -> Result<Value, AvrowErr> {
         if let Variant::Record {
@@ -807,7 +807,7 @@ mod tests {
           "mentees":{"id":1, "username":"alice"} }"##,
         )
         .unwrap();
-        let rec = super::Record::from_json(json, &schema).unwrap();
+        let rec = super::Record::from_json(&json, &schema).unwrap();
         let mut writer = crate::Writer::new(&schema, vec![]).unwrap();
         writer.write(rec).unwrap();
         let avro_data = writer.into_inner().unwrap();
@@ -836,7 +836,7 @@ mod tests {
 
         let serde_json = serde_json::from_str(sample_data).unwrap();
         let schema = Schema::from_str(schema_str).unwrap();
-        let rec = Record::from_json(serde_json, &schema).unwrap();
+        let rec = Record::from_json(&serde_json, &schema).unwrap();
         let field = &rec.as_record().unwrap().fields["data"];
         assert_eq!(field.value, Value::Null);
     }
