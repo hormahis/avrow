@@ -59,7 +59,7 @@ pub(crate) enum Variant {
 }
 
 /// Represents the avro schema used to write encoded avro data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Schema {
     // TODO can remove this if not needed
     inner: JsonValue,
