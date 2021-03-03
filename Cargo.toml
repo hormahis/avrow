@@ -1,15 +1,15 @@
 [package]
 name = "avrow"
-version = "0.2.1"
-authors = ["creativcoder <creativcoders@gmail.com>"]
+version = "0.2.2"
+authors = ["creativcoder <creativcoders@gmail.com>", "Alex Rulkov <fatemonk@gmail.com>"]
 edition = "2018"
-repository = "https://github.com/creativcoder/avrow"
+repository = "https://github.com/fatemonk/avrow"
 license = "MIT OR Apache-2.0"
 description = "Avrow is a fast, type safe serde based data serialization library"
-homepage = "https://github.com/creativcoder/avrow"
+homepage = "https://github.com/fatemonk/avrow"
 documentation = "https://docs.rs/avrow"
 readme = "README.md"
-keywords = ["avro", "avrow", "rust-avro", "serde-avro","encoding"]
+keywords = ["avro", "avrow", "rust-avro", "serde-avro", "encoding"]
 categories = ["encoding", "compression", "command-line-utilities"]
 
 [dependencies]
