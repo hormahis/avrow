@@ -545,6 +545,11 @@ pub(crate) fn decode<R: Read>(
                 it.push(decoded);
             }
 
+            let _: i64 = match reader.read_varint() {
+                Ok(i) => i,
+                _ => 0
+            };
+
             Value::Array(it)
         }
         Variant::Bytes => Value::Bytes(decode_bytes(reader)?),
