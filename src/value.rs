@@ -349,11 +349,12 @@ impl Value {
                     items: items_schema,
                 },
             ) => {
-                let array_items_count = Value::from(values.len() as i64);
-                array_items_count.encode(writer, &Variant::Long, cxt)?;
-
-                for i in values {
-                    i.encode(writer, items_schema, cxt)?;
+                if values.len() > 0 {
+                    let array_items_count = Value::from(values.len() as i64);
+                    array_items_count.encode(writer, &Variant::Long, cxt)?;
+                    for i in values {
+                        i.encode(writer, items_schema, cxt)?;
+                    }
                 }
                 Value::from(0i64).encode(writer, &Variant::Long, cxt)?;
             }

@@ -540,15 +540,13 @@ pub(crate) fn decode<R: Read>(
             let block_count: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
 
             let mut it = Vec::with_capacity(block_count as usize);
-            for _ in 0..block_count {
-                let decoded = decode(&**items, reader, w_cxt)?;
-                it.push(decoded);
+            if block_count > 0 {
+                for _ in 0..block_count {
+                    let decoded = decode(&**items, reader, w_cxt)?;
+                    it.push(decoded);
+                }
+                let _: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
             }
-
-            let _: i64 = match reader.read_varint() {
-                Ok(i) => i,
-                _ => 0
-            };
 
             Value::Array(it)
         }
