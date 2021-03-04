@@ -342,8 +342,9 @@ pub(crate) fn parse_default(
     match (default_value, schema_variant) {
         (d, Variant::Union { variants }) => {
             for variant in variants {
-                if let Ok(v) = parse_default(d, variant, schema) {
-                    return Ok(v);
+                match parse_default(d, variant, schema) {
+                    Err(AvrowErr::DefaultValueParse) => continue,
+                    result => return result
                 }
             };
             Err(AvrowErr::FailedDefaultUnion)
