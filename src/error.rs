@@ -52,6 +52,8 @@ pub enum AvrowErr {
     WriterBuildFailed,
     #[error("Json must be an object for record")]
     ExpectedJsonObject,
+    #[error("No value for field: {0}")]
+    MissingValue(String),
 
     // Decode errors
     #[error("Read failed")]

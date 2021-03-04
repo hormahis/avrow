@@ -367,19 +367,21 @@ pub(crate) fn parse_default(
         (JsonValue::String(n), Variant::Bytes) => Ok(Value::Bytes(n.as_bytes().to_vec())),
         (JsonValue::String(n), Variant::Str) => Ok(Value::Str(n.clone())),
         (JsonValue::Object(v), Variant::Record { name, fields, .. }) => {
-            let mut values = IndexMap::with_capacity(v.len());
+            let mut result = IndexMap::with_capacity(v.len());
 
-            for (k, v) in v {
-                let parsed_value = parse_default(
-                    v,
-                    &fields.get(k).ok_or(AvrowErr::DefaultValueParse)?.ty,
-                    schema
-                )?;
-                values.insert(k.to_string(), FieldValue::new(parsed_value));
-            }
+            for (key, field) in fields.iter() {
+                let parsed_value = match v.get(key) {
+                    Some(value) => parse_default(value, &field.ty, schema)?,
+                    None => match field.default {
+                        Some(ref value) => value.clone(),
+                        None => return Err(AvrowErr::MissingValue(field.name.clone()))
+                    }
+                };
+                result.insert(key.to_string(), FieldValue::new(parsed_value));
+            };
 
             Ok(Value::Record(crate::value::Record {
-                fields: values,
+                fields: result,
                 name: name.to_string(),
             }))
         }
