@@ -355,7 +355,6 @@ impl Value {
                 for i in values {
                     i.encode(writer, items_schema, cxt)?;
                 }
-                Value::from(0i64).encode(writer, &Variant::Long, cxt)?;
             }
             // case where serde serializes a Vec<u8> to a Array of Byte
             // FIXME:figure out a better way for this?

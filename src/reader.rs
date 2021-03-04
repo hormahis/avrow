@@ -545,8 +545,6 @@ pub(crate) fn decode<R: Read>(
                 it.push(decoded);
             }
 
-            let _: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
-
             Value::Array(it)
         }
         Variant::Bytes => Value::Bytes(decode_bytes(reader)?),
@@ -584,8 +582,11 @@ pub(crate) fn decode<R: Read>(
             Value::Fixed(buf)
         }
         Variant::Union { variants } => {
-            let variant_idx: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
-            decode(&variants[variant_idx as usize], reader, w_cxt)?
+            let idx: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
+            if idx as usize >= variants.len() {
+                return Err(AvrowErr::InvalidAvroMessage)
+            };
+            decode(&variants[idx as usize], reader, w_cxt)?
         }
         Variant::Named(schema_name) => {
             let schema_variant = w_cxt

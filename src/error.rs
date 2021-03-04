@@ -56,6 +56,8 @@ pub enum AvrowErr {
     MissingValue(String),
 
     // Decode errors
+    #[error("Message is invalid")]
+    InvalidAvroMessage,
     #[error("Read failed")]
     DecodeFailed(#[source] std::io::Error),
     #[error("failed reading `avro.schema` metadata from header")]
