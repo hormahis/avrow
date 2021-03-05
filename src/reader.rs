@@ -536,6 +536,22 @@ pub(crate) fn decode<R: Read>(
             })?;
             Value::Str(s.to_string())
         }
+        Variant::Enum { symbols, .. } => {
+            let idx: i32 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
+            let idx = idx as usize;
+            if idx >= symbols.len() {
+                return Err(AvrowErr::InvalidEnumSymbolIdx(
+                    idx,
+                    format!("{:?}", symbols),
+                ));
+            }
+            let symbol = symbols.get(idx);
+            if let Some(s) = symbol {
+                return Ok(Value::Enum(s.to_string()));
+            } else {
+                return Err(AvrowErr::EnumSymbolNotFound { idx });
+            }
+        }
         Variant::Array { items } => {
             let block_count: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
 
@@ -596,12 +612,6 @@ pub(crate) fn decode<R: Read>(
                 .get(schema_name)
                 .ok_or(AvrowErr::NamedSchemaNotFound)?;
             decode(schema_variant, reader, w_cxt)?
-        }
-        a => {
-            return Err(AvrowErr::DecodeFailed(Error::new(
-                ErrorKind::InvalidData,
-                format!("Read failed for schema {:?}", a),
-            )))
         }
     };
 

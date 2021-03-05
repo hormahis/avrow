@@ -157,6 +157,7 @@ fn avro_to_json(value: &Value) -> Result<JsonValue, AvrowErr> {
         Value::Float(v) => json!(v),
         Value::Double(v) => json!(v),
         Value::Str(v) => json!(v),
+        Value::Enum(v) => json!(v),
         Value::Record(r) => JsonValue::Object(r.to_json()?),
         Value::Fixed(v) => json!(match from_utf8(v.as_slice()) {
             Ok(s) => s,

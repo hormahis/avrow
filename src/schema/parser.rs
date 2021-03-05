@@ -387,7 +387,7 @@ pub(crate) fn parse_default(
         }
         (JsonValue::String(n), Variant::Enum { symbols, .. }) => {
             if symbols.contains(n) {
-                Ok(Value::Str(n.clone()))
+                Ok(Value::Enum(n.clone()))
             } else {
                 Err(AvrowErr::EnumSymbolNotPresent)
             }
