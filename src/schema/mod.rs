@@ -212,7 +212,7 @@ impl Variant {
                 return if let Some(v) = hmap.values().next() {
                     values.validate(v, cxt)
                 } else {
-                    Err(AvrowErr::EmptyMap)
+                    Ok(())
                 }
             }
             (Value::Enum(sym), Variant::Enum { symbols, .. }) if symbols.contains(sym) => {

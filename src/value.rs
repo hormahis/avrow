@@ -302,12 +302,18 @@ impl Value {
             }
             (Value::Map(hmap), Variant::Map { values }) => {
                 // number of keys/value (start of a block)
-                encode_long(hmap.keys().len() as i64, writer)?;
-                for (k, v) in hmap.iter() {
-                    encode_long(k.len() as i64, writer)?;
-                    encode_raw_bytes(&*k.as_bytes(), writer)?;
-                    v.encode(writer, values, cxt)?;
+                let map_len: i64 = hmap.keys().len() as i64;
+
+                // if map is not empty, write len and map
+                if map_len > 0 {
+                    encode_long(map_len, writer)?;
+                    for (k, v) in hmap.iter() {
+                        encode_long(k.len() as i64, writer)?;
+                        encode_raw_bytes(&*k.as_bytes(), writer)?;
+                        v.encode(writer, values, cxt)?;
+                    }
                 }
+
                 // marks end of block
                 encode_long(0, writer)?;
             }

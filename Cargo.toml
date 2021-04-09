@@ -1,6 +1,6 @@
 [package]
 name = "avrow"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["creativcoder <creativcoders@gmail.com>", "Alex Rulkov <fatemonk@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/fatemonk/avrow"

@@ -554,13 +554,14 @@ pub(crate) fn decode<R: Read>(
         }
         Variant::Array { items } => {
             let block_count: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
-
             let mut it = Vec::with_capacity(block_count as usize);
+
             if block_count > 0 {
                 for _ in 0..block_count {
                     let decoded = decode(&**items, reader, w_cxt)?;
                     it.push(decoded);
                 }
+                // end block
                 let _: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
             }
 
@@ -568,12 +569,17 @@ pub(crate) fn decode<R: Read>(
         }
         Variant::Bytes => Value::Bytes(decode_bytes(reader)?),
         Variant::Map { values } => {
-            let block_count: usize = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
+            let block_count: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
             let mut hm = HashMap::new();
-            for _ in 0..block_count {
-                let key = decode_string(reader)?;
-                let value = decode(values, reader, w_cxt)?;
-                hm.insert(key, value);
+
+            if block_count > 0 {
+                for _ in 0..block_count {
+                    let key = decode_string(reader)?;
+                    let value = decode(values, reader, w_cxt)?;
+                    hm.insert(key, value);
+                }
+                // end block
+                let _: i64 = reader.read_varint().map_err(AvrowErr::DecodeFailed)?;
             }
 
             Value::Map(hm)
@@ -614,7 +620,6 @@ pub(crate) fn decode<R: Read>(
             decode(schema_variant, reader, w_cxt)?
         }
     };
-
     Ok(value)
 }
 
