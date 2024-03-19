@@ -26,14 +26,14 @@ type JsonMap = serde_json::Map<String, serde_json::Value>;
 type JsonValue = serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub(crate) struct FieldValue {
-    pub(crate) value: Value,
+pub struct FieldValue {
+    pub value: Value,
     #[serde(skip_serializing)]
     order: schema::Order,
 }
 
 impl FieldValue {
-    pub(crate) fn new(value: Value) -> Self {
+    pub fn new(value: Value) -> Self {
         FieldValue {
             value,
             order: Order::Ascending,
@@ -46,8 +46,8 @@ impl FieldValue {
 /// Avro records translates to a struct in Rust. Any struct that implements serde's
 /// Serializable trait can be converted to an avro record.
 pub struct Record {
-    pub(crate) name: String,
-    pub(crate) fields: IndexMap<String, FieldValue>,
+    pub name: String,
+    pub fields: IndexMap<String, FieldValue>,
 }
 
 impl Record {
@@ -218,7 +218,7 @@ pub enum Value {
 }
 
 impl Value {
-    pub(crate) fn encode<W: Write>(
+    pub fn encode<W: Write>(
         &self,
         writer: &mut W,
         schema: &Variant,
